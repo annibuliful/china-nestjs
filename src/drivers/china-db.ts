@@ -1,6 +1,9 @@
 import { StringOrNumber } from 'src/commmon/interfaces/common';
 
-export class ChinaDbDriver<T extends { id?: StringOrNumber }> {
+export class ChinaDbDriver<
+  T extends { id?: StringOrNumber },
+  Q extends T & Record<string, string | number | boolean>,
+> {
   private stores: T[] = [];
   private counterId = 0;
   private uniqueField: keyof T;
@@ -27,6 +30,26 @@ export class ChinaDbDriver<T extends { id?: StringOrNumber }> {
 
       this.stores.push(insertData as T);
       resolve(insertData as T);
+    });
+  }
+  get(query: Partial<Q>): Promise<T[]> {
+    return new Promise((resolve) => {
+      let result = Array.from(this.stores);
+
+      Object.entries(query).forEach(([key, queryValue]) => {
+        result = result.filter((el) => {
+          const value = el[key];
+          switch (typeof value) {
+            case 'number':
+              return value === queryValue;
+            case 'string':
+              return value.toLowerCase().includes(queryValue.toLowerCase());
+            case 'boolean':
+              return value === queryValue;
+          }
+        });
+      });
+      resolve(result);
     });
   }
 
